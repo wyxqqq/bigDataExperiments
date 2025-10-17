@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据表格与图表可视化</title>
+    <link rel="stylesheet" href="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/xspreadsheet.css" />
+    <script src="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/xspreadsheet.js"></script>
+    <script src="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/locale/zh-cn.js"></script>
+    <script src="https://d3js.org/d3.v6.js"></script>
+    <style>
+        .container {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+        #xspreadsheet {
+            width: 400px;
+            height: 500px;
+            border: 1px solid #ddd;
+        }
+        #my_dataviz {
+            flex: 1;
+            min-width: 600px;
+            height: 500px;
+            border: 1px solid #ddd;
+        }
+        .control-panel {
+            margin: 10px 20px;
+        }
+        .error-message {
+            color: #dc3545;
+            margin: 10px 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <input type="checkbox" class="checkbox" id="barchartCheckbox" value="barchart" />
+        <label for="barchartCheckbox">显示柱状图</label>
+    </div>
+    <div class="error-message" id="errorMessage"></div>
+    <div class="container">
+        <div id="xspreadsheet"></div>
+        <div id="my_dataviz"></div>
+    </div>
+
+    <script>
+        // 初始化电子表格
+        x_spreadsheet.locale("zh-cn");
+        const xs = x_spreadsheet("#xspreadsheet", {
+            mode: 'edit',
+            showToolbar: true,
+            showGrid: true,
+            showContextmenu: true,
+            view: {
+                height: () => document.documentElement.clientHeight,
+                width: () => document.documentElement.clientWidth,
+            },
+            row: {
+                len: 15,
+                height: 25,
+            },
+            col: {
+                len: 8,
+                width: 100,
+                indexWidth: 60,
+                minWidth: 60,
+            },
+            style: {
+                bgcolor: '#ffffff',
+                align: 'left',
+                valign: 'middle',
+                textwrap: false,
+                strike: false,
+                underline: false,
+                color: '#0a0a0a',
+                font: {
+                    name: 'Helvetica',
+                    size: 10,
+                    bold: false,
+                    italic: false,
+                },
+            },
+        });
+
+        // 设置初始数据
+        xs.on('cell-edited', updateChart);
+        xs.cellText(0, 1, "计算机").cellText(0, 2, "法学").reRender();
+        xs.cellText(1, 0, "2017")
+            .cellText(1, 1, "23")
+            .cellText(1, 2, "15")
+            .reRender();
+        xs.cellText(2, 0, "2018")
+            .cellText(2, 1, "36")
+            .cellText(2, 2, "26")
+            .reRender();
+        xs.cellText(3, 0, "2019")
+            .cellText(3, 1, "23")
+            .cellText(3, 2, "33")
+            .reRender();
+        xs.cellText(4, 0, "2020")
+            .cellText(4, 1, "22")
+            .cellText(4, 2, "10")
+            .reRender();
+
+        // 获取颜色的函数
+        function getColor(idx) {
+            const palette = [
+                '#5ab1ef', '#ffb980', '#d87a80', '#2ec7c9', '#b6a2de',
+                '#8d98b3', '#e5cf0d', '#97b552', '#95706d', '#dc69aa',
+                '#07a2a4', '#9a7fd1', '#588dd5', '#f5994e', '#c05050',
+                '#59678c', '#c9ab00', '#7eb00a', '#6f5553', '#c14089'
+            ];
+            return palette[idx % palette.length];
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        // 隐藏错误信息
+        function hideError() {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.style.display = 'none';
+        }
+
+        // 更新图表
+        function updateChart() {
+            const checkbox = d3.select('#barchartCheckbox');
+            
+            // 如果未勾选，则清除图表
+            if (!checkbox.property("checked")) {
+                d3.select("#my_dataviz").selectAll("*").remove();
+                hideError();
+                return;
+            }
+
+            try {
+                hideError();
+                let data = [];
+                let yTitle = []; // 行标题（年份）
+                let xTitle = []; // 列标题（学科）
+                let rows = 0;
+                let cols = 0;
+
+                // 获取行标题（第一列）
+                for (let i = 1; i < 20; i++) {
+                    const cell = xs.cell(i, 0);
+                    if (!cell || !cell.text || cell.text.trim() === "") {
+                        rows = i;
+                        break;
+                    }
+                    yTitle.push(cell.text.trim());
+                    data.push([]);
+                }
+
+                // 获取列标题（第一行）
+                for (let i = 1; i < 20; i++) {
+                    const cell = xs.cell(0, i);
+                    if (!cell || !cell.text || cell.text.trim() === "") {
+                        cols = i;
+                        break;
+                    }
+                    xTitle.push(cell.text.trim());
+                }
+
+                // 验证数据
+                if (rows <= 1 || cols <= 1) {
+                    showError("请确保表格中有足够的数据（至少一行一列数据）");
+                    return;
+                }
+
+                // 读取表格数据
+                for (let i = 1; i < rows; i++) {
+                    for (let j = 1; j < cols; j++) {
+                        const cell = xs.cell(i, j);
+                        if (!cell || !cell.text || isNaN(+cell.text)) {
+                            showError(`单元格(${i+1},${j+1})数据格式错误，请输入数字`);
+                            return;
+                        }
+                        data[i - 1][j - 1] = +cell.text;
+                    }
+                }
+
+                // 准备图表数据
+                const chartData = yTitle.map((group, i) => {
+                    const item = { group };
+                    xTitle.forEach((title, j) => {
+                        item[title] = data[i][j];
+                    });
+                    return item;
+                });
+
+                // 计算最大值用于Y轴范围
+                const maxValue = Math.max(...data.flat());
+
+                // 清除现有图表
+                d3.select("#my_dataviz").selectAll("*").remove();
+
+                // 设置图表尺寸
+                const margin = { top: 40, right: 120, bottom: 60, left: 80 };
+                const container = document.getElementById('my_dataviz');
+                const width = container.clientWidth - margin.left - margin.right;
+                const height = container.clientHeight - margin.top - margin.bottom;
+
+                // 创建SVG
+                const svg = d3.select("#my_dataviz")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                // X轴比例尺（组）
+                const x = d3.scaleBand()
+                    .domain(yTitle)
+                    .range([0, width])
+                    .padding(0.2);
+
+                // 绘制X轴
+                svg.append("g")
+                    .attr("transform", `translate(0, ${height})`)
+                    .call(d3.axisBottom(x).tickSizeOuter(0))
+                    .selectAll("text")
+                    .style("font-size", "12px");
+
+                // Y轴比例尺
+                const y = d3.scaleLinear()
+                    .domain([0, maxValue * 1.1]) // 留10%的余量
+                    .range([height, 0])
+                    .nice();
+
+                // 绘制Y轴
+                svg.append("g")
+                    .call(d3.axisLeft(y))
+                    .selectAll("text")
+                    .style("font-size", "12px");
+
+                //  subgroups比例尺
+                const xSubgroup = d3.scaleBand()
+                    .domain(xTitle)
+                    .range([0, x.bandwidth()])
+                    .padding(0.05);
+
+                // 绘制柱状图
+                svg.append("g")
+                    .selectAll("g")
+                    .data(chartData)
+                    .join("g")
+                    .attr("transform", d => `translate(${x(d.group)}, 0)`)
+                    .selectAll("rect")
+                    .data(d => xTitle.map(key => ({ key, value: d[key] })))
+                    .join("rect")
+                    .attr("x", d => xSubgroup(d.key))
+                    .attr("y", d => y(d.value))
+                    .attr("width", xSubgroup.bandwidth())
+                    .attr("height", d => height - y(d.value))
+                    .attr("fill", (d, i) => getColor(i));
+
+                // 添加数据标签
+                svg.append("g")
+                    .selectAll("g")
+                    .data(chartData)
+                    .join("g")
+                    .attr("transform", d => `translate(${x(d.group)}, 0)`)
+                    .selectAll("text")
+                    .data(d => xTitle.map(key => ({ key, value: d[key] })))
+                    .join("text")
+                    .attr("x", d => xSubgroup(d.key) + xSubgroup.bandwidth() / 2)
+                    .attr("y", d => y(d.value) - 5)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "12px")
+                    .text(d => d.value);
+
+                // 添加图例
+                const legend = svg.selectAll(".legend")
+                    .data(xTitle)
+                    .enter()
+                    .append("g")
+                    .attr("class", "legend")
+                    .attr("transform", (d, i) => `translate(${width + 20}, ${i * 20})`);
+
+                legend.append("rect")
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .style("fill", (d, i) => getColor(i));
+
+                legend.append("text")
+                    .attr("x", 25)
+                    .attr("y", 9)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "start")
+                    .style("font-size", "12px")
+                    .text(d => d);
+
+            } catch (error) {
+                console.error("更新图表时出错:", error);
+                showError("生成图表时发生错误: " + error.message);
+            }
+        }
+
+        // 绑定复选框事件
+        d3.select('#barchartCheckbox').on("change", updateChart);
+    </script>
+</body>
+</html>
