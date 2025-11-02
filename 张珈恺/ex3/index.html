@@ -1,0 +1,323 @@
+
+
+
+<link rel="stylesheet" href="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/xspreadsheet.css" />
+<script src="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/xspreadsheet.js"></script>
+<script src="https://unpkg.com/x-data-spreadsheet@1.1.9/dist/locale/zh-cn.js"></script>
+<script src="https://d3js.org/d3.v6.js"></script>
+
+<div id="xspreadsheet">
+  <select id="chartType">
+    <option value="bar">柱状图</option>
+    <option value="line">折线图</option>
+  </select>
+  <input type="checkbox" class="checkbox" value="visualization" id="visualization" />
+  <label for="visualization">显示可视化</label>
+</div>
+<div id="my_dataviz"></div>
+
+<style>
+  #xspreadsheet {
+    width: 400px;
+    height: 500px;
+    padding: 0px;
+    margin: 0px;
+  }
+  #my_dataviz {
+    width: 1000px;
+    height: 900px;
+    padding: 0px;
+    margin: 0px;
+  }
+  .tick text {
+    font-size: 12px;
+    fill: #666;
+  }
+</style>
+
+<script>
+  x_spreadsheet.locale("zh-cn");
+  var xs = x_spreadsheet("#xspreadsheet", {
+    mode: 'edit',
+    showToolbar: true,
+    showGrid: true,
+    showContextmenu: true,
+    view: {
+      height: () => document.documentElement.clientHeight,
+      width: () => document.documentElement.clientWidth,
+    },
+    row: {
+      len: 15,
+      height: 25,
+    },
+    col: {
+      len: 8,
+      width: 100,
+      indexWidth: 60,
+      minWidth: 60,
+    },
+    style: {
+      bgcolor: '#ffffff',
+      align: 'left',
+      valign: 'middle',
+      textwrap: false,
+      strike: false,
+      underline: false,
+      color: '#0a0a0a',
+      font: {
+        name: 'Helvetica',
+        size: 10,
+        bold: false,
+        italic: false,
+      },
+    },
+  })
+
+  // 初始化表格数据
+  xs.cellText(0, 1, "计算机").cellText(0, 2, "法学").reRender();
+  xs.cellText(1, 0, "2017").cellText(1, 1, "23").cellText(1, 2, "15").reRender();
+  xs.cellText(2, 0, "2018").cellText(2, 1, "36").cellText(2, 2, "26").reRender();
+  xs.cellText(3, 0, "2019").cellText(3, 1, "23").cellText(3, 2, "33").reRender();
+  xs.cellText(4, 0, "2020").cellText(4, 1, "22").cellText(4, 2, "10").reRender();
+
+  function getColor(idx) {
+    var palette = [
+      '#5ab1ef', '#ffb980', '#d87a80', '#2ec7c9', '#b6a2de',
+      '#8d98b3', '#e5cf0d', '#97b552', '#95706d', '#dc69aa',
+      '#07a2a4', '#9a7fd1', '#588dd5', '#f5994e', '#c05050',
+      '#59678c', '#c9ab00', '#7eb00a', '#6f5553', '#c14089'
+    ]
+    return palette[idx % palette.length];
+  }
+
+  // 读取表格数据并校验
+  function getTableData() {
+    var xTitle = [];
+    var yTitle = [];
+    var data = [];
+    var maxRow = 15;
+    var maxCol = 8;
+
+    // 读取行标题（A列）
+    for (var i = 1; i < maxRow; i++) {
+      var cell = xs.cell(i, 0);
+      if (!cell || !cell.text || cell.text.trim() === "") break;
+      yTitle.push(cell.text.trim());
+    }
+    if (yTitle.length === 0) {
+      alert("请在A列填写行标题！");
+      return null;
+    }
+
+    // 读取列标题（第0行）
+    for (var j = 1; j < maxCol; j++) {
+      var cell = xs.cell(0, j);
+      if (!cell || !cell.text || cell.text.trim() === "") break;
+      xTitle.push(cell.text.trim());
+    }
+    if (xTitle.length === 0) {
+      alert("请在第0行填写列标题！");
+      return null;
+    }
+
+    // 读取数值数据并校验
+    for (var i = 1; i <= yTitle.length; i++) {
+      var rowData = [];
+      for (var j = 1; j <= xTitle.length; j++) {
+        var cell = xs.cell(i, j);
+        var cellValue = cell ? cell.text.trim() : "";
+        if (cellValue === "" || isNaN(Number(cellValue))) {
+          alert(`单元格(${String.fromCharCode(64+j)}${i})数据无效！`);
+          return null;
+        }
+        rowData.push(Number(cellValue));
+      }
+      data.push(rowData);
+    }
+
+    return { xTitle, yTitle, data };
+  }
+
+  // 柱状图渲染函数
+  function renderBarChart(data) {
+    d3.select("#my_dataviz").selectAll("svg").remove();
+    const margin = { top: 40, right: 60, bottom: 60, left: 80 };
+    const width = 1000 - margin.left - margin.right;
+    const height = 600 - margin.top - margin.bottom;
+
+    const svg = d3.select("#my_dataviz")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .append("g")
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    const xOuter = d3.scaleBand().domain(data.yTitle).range([0, width]).padding(0.2);
+    const xInner = d3.scaleBand().domain(data.xTitle).range([0, xOuter.bandwidth()]).padding(0.1);
+    const y = d3.scaleLinear().domain([0, d3.max(data.data, row => d3.max(row)) * 1.1]).range([height, 0]);
+
+    const rowGroups = svg.selectAll(".row-group")
+      .data(data.yTitle)
+      .enter().append("g")
+      .attr("class", "row-group")
+      .attr("transform", d => `translate(${xOuter(d)}, 0)`);
+
+    rowGroups.selectAll(".bar")
+      .data((d, rowIdx) => data.xTitle.map((colTitle, colIdx) => ({
+        value: data.data[rowIdx][colIdx],
+        colTitle, rowIdx, colIdx
+      })))
+      .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", d => xInner(d.colTitle))
+      .attr("y", d => y(d.value))
+      .attr("width", xInner.bandwidth())
+      .attr("height", d => height - y(d.value))
+      .attr("fill", (d, i) => getColor(i));
+
+    rowGroups.selectAll(".bar-label")
+      .data((d, rowIdx) => data.xTitle.map((colTitle, colIdx) => ({
+        value: data.data[rowIdx][colIdx],
+        colTitle
+      })))
+      .enter().append("text")
+      .attr("class", "bar-label")
+      .attr("x", d => xInner(d.colTitle) + xInner.bandwidth() / 2)
+      .attr("y", d => y(d.value) - 5)
+      .attr("text-anchor", "middle")
+      .text(d => d.value);
+
+    svg.append("g")
+      .attr("transform", `translate(0, ${height})`)
+      .call(d3.axisBottom(xOuter).tickSizeOuter(0))
+      .append("text")
+      .attr("x", width / 2)
+      .attr("y", 40)
+      .text("年份");
+
+    svg.append("g")
+      .call(d3.axisLeft(y).ticks(5))
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -height / 2)
+      .attr("y", -60)
+      .text("人数");
+
+    const legend = svg.append("g")
+      .attr("transform", `translate(${width - 150}, 20)`);
+
+    legend.selectAll(".legend-rect")
+      .data(data.xTitle)
+      .enter().append("rect")
+      .attr("x", 0)
+      .attr("y", (d, i) => i * 20)
+      .attr("width", 15)
+      .attr("height", 10)
+      .attr("fill", (d, i) => getColor(i));
+
+    legend.selectAll(".legend-text")
+      .data(data.xTitle)
+      .enter().append("text")
+      .attr("x", 25)
+      .attr("y", (d, i) => i * 20 + 8)
+      .text(d => d);
+  }
+
+  // 新增：折线图渲染函数
+  function renderLineChart(data) {
+    d3.select("#my_dataviz").selectAll("svg").remove();
+    const margin = { top: 40, right: 60, bottom: 60, left: 80 };
+    const width = 1000 - margin.left - margin.right;
+    const height = 600 - margin.top - margin.bottom;
+
+    const svg = d3.select("#my_dataviz")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .append("g")
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    const x = d3.scaleBand().domain(data.yTitle).range([0, width]).padding(0.1);
+    const y = d3.scaleLinear().domain([0, d3.max(data.data, row => d3.max(row)) * 1.1]).range([height, 0]);
+
+    svg.append("g")
+      .attr("transform", `translate(0, ${height})`)
+      .call(d3.axisBottom(x).tickSizeOuter(0))
+      .append("text")
+      .attr("x", width / 2)
+      .attr("y", 40)
+      .text("年份");
+
+    svg.append("g")
+      .call(d3.axisLeft(y).ticks(5))
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -height / 2)
+      .attr("y", -60)
+      .text("人数");
+
+    for (let i = 0; i < data.xTitle.length; i++) {
+      const values = data.data.map(row => row[i]);
+      const line = d3.line()
+        .x((d, j) => x(data.yTitle[j]) + x.bandwidth() / 2)
+        .y(d => y(d));
+
+      svg.append("path")
+        .datum(values)
+        .attr("fill", "none")
+        .attr("stroke", getColor(i))
+        .attr("stroke-width", 2)
+        .attr("d", line);
+
+      svg.selectAll(`.dot-${i}`)
+        .data(values)
+        .enter().append("circle")
+        .attr("class", `dot-${i}`)
+        .attr("cx", (d, j) => x(data.yTitle[j]) + x.bandwidth() / 2)
+        .attr("cy", d => y(d))
+        .attr("r", 4)
+        .attr("fill", getColor(i))
+        .append("title")
+        .text((d, j) => `${data.xTitle[i]} ${data.yTitle[j]}: ${d}`);
+    }
+
+    const legend = svg.append("g")
+      .attr("transform", `translate(${width - 150}, 20)`);
+
+    legend.selectAll(".legend-rect")
+      .data(data.xTitle)
+      .enter().append("rect")
+      .attr("x", 0)
+      .attr("y", (d, i) => i * 20)
+      .attr("width", 15)
+      .attr("height", 10)
+      .attr("fill", (d, i) => getColor(i));
+
+    legend.selectAll(".legend-text")
+      .data(data.xTitle)
+      .enter().append("text")
+      .attr("x", 25)
+      .attr("y", (d, i) => i * 20 + 8)
+      .text(d => d);
+  }
+
+  // 统一更新函数
+  function update() {
+    const isChecked = d3.select("#visualization").property("checked");
+    if (!isChecked) {
+      d3.select("#my_dataviz").selectAll("svg").remove();
+      return;
+    }
+
+    const tableData = getTableData();
+    if (!tableData) return;
+
+    const chartType = d3.select("#chartType").property("value");
+    if (chartType === "bar") {
+      renderBarChart(tableData);
+    } else if (chartType === "line") {
+      renderLineChart(tableData);
+    }
+  }
+
+  xs.on('cell-edited', update);
+  d3.selectAll("#visualization, #chartType").on("change", update);
+</script>
