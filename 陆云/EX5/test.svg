@@ -1,0 +1,126 @@
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" style="font-family: Arial, sans-serif;">
+  <style>
+    /* 默认隐藏所有元素，等待动画触发 */
+    .chart-element { opacity: 0; }
+    
+    /* 基础淡入动画 */
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    
+    /* 数据点淡入 + 放大效果 (模拟 'Grow' 或 'Appear') */
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0); }
+      80% { transform: scale(1.2); }
+      100% { opacity: 0.9; transform: scale(1); }
+    }
+
+    /* 应用动画到标题和轴 (0s 开始, 持续 1s) */
+    .anim-base {
+      animation: fadeIn 1s forwards;
+      animation-delay: 0.2s;
+    }
+
+    /* 应用动画到数据点 - 按照论文描述的分组顺序 */
+    /* 变换原点设置为圆心，保证缩放效果正常 */
+    .anim-dot {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* 根据论文 Scenario 1: 
+       "dots in each cell appear together from the cell on the bottom left to the top right"
+       "short pause between animation of cells within the same row"
+       "longer pause between rows"
+    */
+
+    /* --- Row 3 (Bottom): Fibrous --- */
+    /* Cell 1: Almond (Bottom-Left) */
+    .group-fibrous-almond { animation-delay: 1.2s; }
+    /* Cell 4: Foul */
+    .group-fibrous-foul { animation-delay: 1.6s; }
+
+    /* --- Row 2 (Middle): Scaly --- */
+    /* Cell 2: Creosote */
+    .group-scaly-creosote { animation-delay: 2.4s; }
+    /* Cell 5: None */
+    .group-scaly-none { animation-delay: 2.8s; }
+
+    /* --- Row 1 (Top): Smooth --- */
+    /* Cell 1: Almond */
+    .group-smooth-almond { animation-delay: 3.6s; }
+    /* Cell 3: Fishy (Top-Right-ish) */
+    .group-smooth-fishy { animation-delay: 4.0s; }
+
+  </style>
+
+  <rect width="100%" height="100%" fill="white" />
+
+  <g class="chart-element anim-base">
+      <text x="300" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">Sample of Mushrooms</text>
+      
+      <g transform="translate(480, 50)">
+        <circle cx="0" cy="0" r="5" fill="#5cacee" />
+        <text x="15" y="5" font-size="12" fill="#333">Edible</text>
+        <circle cx="0" cy="20" r="5" fill="#e34a33" />
+        <text x="15" y="25" font-size="12" fill="#333">Poisonous</text>
+      </g>
+
+      <text x="50" y="200" transform="rotate(-90, 50, 200)" text-anchor="middle" font-size="14" fill="#666">Surface</text>
+      <text x="300" y="380" text-anchor="middle" font-size="14" fill="#666">Odor</text>
+
+      <g transform="translate(80, 50)">
+        <line x1="0" y1="280" x2="400" y2="280" stroke="#ccc" stroke-width="1" />
+        <line x1="0" y1="0" x2="0" y2="280" stroke="#ccc" stroke-width="1" />
+        <text x="-10" y="240" text-anchor="end" font-size="12" fill="#555">Smooth</text>
+        <text x="-10" y="140" text-anchor="end" font-size="12" fill="#555">Scaly</text>
+        <text x="-10" y="40" text-anchor="end" font-size="12" fill="#555">Fibrous</text>
+        <text x="40" y="300" text-anchor="middle" font-size="12" fill="#555">Almond</text>
+        <text x="120" y="300" text-anchor="middle" font-size="12" fill="#555">Creosote</text>
+        <text x="200" y="300" text-anchor="middle" font-size="12" fill="#555">Fishy</text>
+        <text x="280" y="300" text-anchor="middle" font-size="12" fill="#555">Foul</text>
+        <text x="360" y="300" text-anchor="middle" font-size="12" fill="#555">None</text>
+      </g>
+  </g>
+
+  <g transform="translate(80, 50)">
+    
+    <g>
+        <circle class="chart-element anim-dot group-fibrous-almond" cx="40" cy="40" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-fibrous-almond" cx="30" cy="50" r="5" fill="#5cacee" />
+    </g>
+    <g>
+        <circle class="chart-element anim-dot group-fibrous-foul" cx="275" cy="40" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-fibrous-foul" cx="285" cy="35" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-fibrous-foul" cx="280" cy="50" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-fibrous-foul" cx="270" cy="45" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-fibrous-foul" cx="290" cy="45" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-fibrous-foul" cx="285" cy="55" r="5" fill="#e34a33" />
+    </g>
+
+    <g>
+        <circle class="chart-element anim-dot group-scaly-creosote" cx="115" cy="140" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-scaly-creosote" cx="125" cy="135" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-scaly-creosote" cx="120" cy="150" r="5" fill="#e34a33" />
+    </g>
+    <g>
+        <circle class="chart-element anim-dot group-scaly-none" cx="355" cy="140" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-scaly-none" cx="365" cy="130" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-scaly-none" cx="360" cy="150" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-scaly-none" cx="350" cy="145" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-scaly-none" cx="370" cy="140" r="5" fill="#5cacee" />
+    </g>
+
+    <g>
+        <circle class="chart-element anim-dot group-smooth-almond" cx="35" cy="240" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-smooth-almond" cx="45" cy="235" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-smooth-almond" cx="40" cy="250" r="5" fill="#5cacee" />
+        <circle class="chart-element anim-dot group-smooth-almond" cx="30" cy="230" r="5" fill="#5cacee" />
+    </g>
+    <g>
+        <circle class="chart-element anim-dot group-smooth-fishy" cx="195" cy="245" r="5" fill="#e34a33" />
+        <circle class="chart-element anim-dot group-smooth-fishy" cx="205" cy="240" r="5" fill="#e34a33" />
+    </g>
+  </g>
+</svg>
