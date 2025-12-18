@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>实验三：电子表格实践 I</title>
+
+
+  <link rel="stylesheet" href="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/xspreadsheet.css" />
+  <script src="https://unpkg.com/x-data-spreadsheet@1.1.5/dist/xspreadsheet.js"></script>
+  <script src="https://unpkg.com/x-data-spreadsheet@1.1.9/dist/locale/zh-cn.js"></script>
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+
+  <style>
+    body {
+      display: flex;
+      gap: 24px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #leftPanel {
+      width: 420px;
+    }
+
+    #sheet {
+      width: 420px;
+      height: 520px;
+      border: 1px solid #ddd;
+    }
+
+    #controls {
+      margin-top: 10px;
+      position: relative;
+      z-index: 9999; 
+    }
+
+    #chart {
+      width: 700px;
+      height: 520px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="leftPanel">
+    <div id="sheet"></div>
+
+    <div id="controls">
+      <label>
+        <input type="checkbox" id="visSwitch">
+        显示柱状图
+      </label>
+    </div>
+  </div>
+
+  <div id="chart"></div>
+
+<script>
+
+  x_spreadsheet.locale('zh-cn');
+
+  const xs = x_spreadsheet('#sheet', {
+    mode: 'edit',
+    showToolbar: true,
+    showGrid: true,
+    showContextmenu: true,
+    row: { len: 12, height: 25 },
+    col: { len: 6, width: 100 }
+  });
+
+  /* 初始化表格数据 */
+  xs.cellText(0, 0, '年份')
+    .cellText(0, 1, '计算机')
+    .cellText(0, 2, '法学')
+    .reRender();
+
+  xs.cellText(1, 0, '2019')
+    .cellText(1, 1, '30')
+    .cellText(1, 2, '20')
+    .reRender();
+
+  xs.cellText(2, 0, '2020')
+    .cellText(2, 1, '45')
+    .cellText(2, 2, '28')
+    .reRender();
+
+  xs.cellText(3, 0, '2021')
+    .cellText(3, 1, '50')
+    .cellText(3, 2, '35')
+    .reRender();
+
+  function updateChart() {
+    const chartEl = document.getElementById('chart');
+    chartEl.innerHTML = '';
+
+    if (!document.getElementById('visSwitch').checked) {
+      return;
+    }
+
+    const years = [];
+    const data1 = [];
+    const data2 = [];
+
+    for (let i = 1; i < 12; i++) {
+      const cYear = xs.cell(i, 0);
+      if (!cYear || cYear.text === undefined || String(cYear.text).trim() === '') break;
+
+      const c1 = xs.cell(i, 1);
+      const c2 = xs.cell(i, 2);
+      if (!c1 || !c2) return;
+
+      const v1 = Number(String(c1.text).trim());
+      const v2 = Number(String(c2.text).trim());
+      if (!Number.isFinite(v1) || !Number.isFinite(v2)) return;
+
+      years.push(String(cYear.text).trim());
+      data1.push(v1);
+      data2.push(v2);
+    }
+
+    if (years.length === 0) return;
+
+    const width = 660;
+    const height = 460;
+    const margin = 55;
+
+    const svg = d3.select('#chart')
+      .append('svg')
+      .attr('width', width)
+      .attr('height', height);
+
+    const x = d3.scaleBand()
+      .domain(years)
+      .range([margin, width - margin])
+      .padding(0.25);
+
+    const y = d3.scaleLinear()
+      .domain([0, d3.max([...data1, ...data2])])
+      .nice()
+      .range([height - margin, margin]);
+
+    svg.append('g')
+      .attr('transform', `translate(0, ${height - margin})`)
+      .call(d3.axisBottom(x));
+
+    svg.append('g')
+      .attr('transform', `translate(${margin}, 0)`)
+      .call(d3.axisLeft(y));
+
+    svg.selectAll('.bar1')
+      .data(data1)
+      .enter()
+      .append('rect')
+      .attr('x', (d, i) => x(years[i]))
+      .attr('y', d => y(d))
+      .attr('width', x.bandwidth() / 2)
+      .attr('height', d => height - margin - y(d))
+      .attr('fill', '#5ab1ef');
+
+    svg.selectAll('.bar2')
+      .data(data2)
+      .enter()
+      .append('rect')
+      .attr('x', (d, i) => x(years[i]) + x.bandwidth() / 2)
+      .attr('y', d => y(d))
+      .attr('width', x.bandwidth() / 2)
+      .attr('height', d => height - margin - y(d))
+      .attr('fill', '#ffb980');
+  }
+
+  const visSwitch = document.getElementById('visSwitch');
+
+  visSwitch.addEventListener('click', e => e.stopPropagation());
+  visSwitch.addEventListener('change', updateChart);
+
+  xs.on('cell-edited', updateChart);
+</script>
+
+</body>
+</html>
