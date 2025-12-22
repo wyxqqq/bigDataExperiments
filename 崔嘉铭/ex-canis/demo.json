@@ -1,0 +1,34 @@
+{
+  "charts": [
+    { "id": "demo", "source": "./fruit_bar.dsvg" }
+  ],
+  "facet": {
+    "type": "row",
+    "views": [
+      { "range": ["demo"] }
+    ]
+  },
+  "animations": [
+    {
+      "reference": "start with previous",
+      "selector": ".bar",
+      "grouping": {
+        "groupBy": { "field": "fruit" },
+        "reference": "start after previous",
+        "delay": 400,
+        "grouping": {
+          "groupBy": { "field": "year" },
+          "reference": "start after previous",
+          "delay": 250,
+          "sort": { "field": "year", "order": "ascending" }
+        }
+      },
+      "effects": [
+        {
+          "type": "wipe bottom",
+          "duration": 800
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+  <!-- 背景 -->
+  <rect x="0" y="0" width="720" height="420" fill="#ffffff"/>
+
+  <!-- 坐标轴 -->
+  <line x1="90" y1="340" x2="660" y2="340" stroke="#333" stroke-width="2"/>
+  <line x1="90" y1="340" x2="90" y2="60"  stroke="#333" stroke-width="2"/>
+
+  <!-- 轴标签 -->
+  <text x="640" y="365" font-size="14" fill="#333">Year</text>
+  <text x="35"  y="70"  font-size="14" fill="#333" transform="rotate(-90 35 70)">Value</text>
+
+  <!-- X 轴刻度（两年） -->
+  <text x="260" y="365" font-size="14" fill="#333">2023</text>
+  <text x="460" y="365" font-size="14" fill="#333">2024</text>
+
+  <!-- 图例 -->
+  <rect x="520" y="75" width="12" height="12" fill="#4e79a7"/>
+  <text x="538" y="85" font-size="13" fill="#333">Apple</text>
+  <rect x="520" y="95" width="12" height="12" fill="#f28e2b"/>
+  <text x="538" y="105" font-size="13" fill="#333">Banana</text>
+  <rect x="520" y="115" width="12" height="12" fill="#59a14f"/>
+  <text x="538" y="125" font-size="13" fill="#333">Cherry</text>
+
+  <!-- ===== 条形图：每个 rect 都是一个 mark（关键是 class 和 data-datum）===== -->
+  <!-- 2023 -->
+  <rect class="bar" x="210" y="240" width="35" height="100" fill="#4e79a7"
+        data-datum='{"fruit":"Apple","year":2023,"value":100}'/>
+  <rect class="bar" x="250" y="275" width="35" height="65" fill="#f28e2b"
+        data-datum='{"fruit":"Banana","year":2023,"value":65}'/>
+  <rect class="bar" x="290" y="300" width="35" height="40" fill="#59a14f"
+        data-datum='{"fruit":"Cherry","year":2023,"value":40}'/>
+
+  <!-- 2024 -->
+  <rect class="bar" x="410" y="215" width="35" height="125" fill="#4e79a7"
+        data-datum='{"fruit":"Apple","year":2024,"value":125}'/>
+  <rect class="bar" x="450" y="250" width="35" height="90" fill="#f28e2b"
+        data-datum='{"fruit":"Banana","year":2024,"value":90}'/>
+  <rect class="bar" x="490" y="285" width="35" height="55" fill="#59a14f"
+        data-datum='{"fruit":"Cherry","year":2024,"value":55}'/>
+
+  <!-- 标题 -->
+  <text x="90" y="40" font-size="20" fill="#111">Fruit Sales (Demo dSVG)</text>
+</svg>
